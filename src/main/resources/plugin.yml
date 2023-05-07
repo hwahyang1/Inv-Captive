@@ -1,0 +1,35 @@
+name: Inv-Captive
+version: '${version}'
+main: space.hwahyang.invcaptive.Inv_Captive
+api-version: 1.19
+prefix: Inv-Captive
+load: STARTUP
+author: HwaHyang (Original by monun)
+description: Inv-Captive Plugin
+website: https://hwahyang.space
+commands:
+  invCaptive:
+    description: Inv-Captive Player Commands.
+    usage: "Usage: /<command> help"
+    aliases: [captive]
+    permission: invCaptive.player
+    permission-message: "You do not have permission!"
+  invCaptiveAdmin:
+    description: Inv-Captive Admin Commands.
+    usage: "Usage: /<command> help"
+    aliases: [captiveAdmin]
+    permission: invCaptive.admin
+    permission-message: "You do not have permission!"
+permissions:
+  invCaptive.player:
+    description: Inv-Captive Player
+    default: true
+  invCaptive.admin:
+    description: Inv-Captive Admin
+    default: op
+  invCaptive.*:
+    description: Inv-Captive Wildcard
+    default: op
+    children:
+      invCaptive.player: true
+      invCaptive.admin: true
