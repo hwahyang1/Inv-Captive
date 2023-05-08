@@ -1,22 +1,20 @@
 package space.hwahyang.invcaptive;
 
 import org.bukkit.Material;
-import org.bukkit.entity.Player;
-import org.bukkit.inventory.PlayerInventory;
 
 import java.util.*;
 
 public class InventoryManager {
 
     /**
-     * ë°°ì¹˜ ê°€ëŠ¥í•œ Materialì„ ë¬´ì‘ìœ„ ë°°ì—´ë¡œ ë°˜í™˜í•©ë‹ˆë‹¤.
-     * @return ë°°ì¹˜ ê°€ëŠ¥í•œ ëª¨ë“  Materialì´ Inventory í¬ê¸°ì— ë§ì¶° ë¬´ì‘ìœ„ë¡œ ì„ì—¬ì„œ ë°˜í™˜ë©ë‹ˆë‹¤.
+     * ¹èÄ¡ °¡´ÉÇÑ MaterialÀ» ¹«ÀÛÀ§ ¹è¿­·Î ¹İÈ¯ÇÕ´Ï´Ù.
+     * @return ¹èÄ¡ °¡´ÉÇÑ ¸ğµç MaterialÀÌ Inventory Å©±â¿¡ ¸ÂÃç ¹«ÀÛÀ§·Î ¼¯¿©¼­ ¹İÈ¯µË´Ï´Ù.
      */
     public EnumMap<Material, Integer> getMaterialArray() {
         List<Material> data = Arrays.stream(Material.values()).filter(target -> target.isBlock() && !target.isAir()).toList();
         Collections.shuffle(data);
 
-        int count = 9 * 4 + 5;
+        int count = 9 * 4 + 5; // ÇÃ·¹ÀÌ¾î ÀÎº¥Åä¸® 36Ä­ + Àåºñ 4Ä­ + º¸Á¶¼Õ 1Ä­
         EnumMap<Material, Integer> map = new EnumMap<>(Material.class);
 
         for (int i = 0; i < count; i++) {

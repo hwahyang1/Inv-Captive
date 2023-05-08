@@ -26,7 +26,7 @@ public class CommandsManager implements CommandExecutor {
 
             return true;
         } else if (sender instanceof ConsoleCommandSender) {
-            sendMessage(sender, "¡×cOnly players can use this command.");
+            sendMessage(sender, "&cOnly players can use this command.");
             return true;
         }
         return false;

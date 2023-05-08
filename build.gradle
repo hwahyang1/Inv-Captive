@@ -15,10 +15,18 @@ repositories {
         name = "sonatype"
         url = "https://oss.sonatype.org/content/groups/public/"
     }
+    maven {
+        name 'm2-dv8tion'
+        url 'https://m2.dv8tion.net/releases'
+    }
+    maven {
+        url 'https://nexus.scarsz.me/content/groups/public/'
+    }
 }
 
 dependencies {
     compileOnly "org.spigotmc:spigot-api:1.19.4-R0.1-SNAPSHOT"
+    compileOnly 'com.discordsrv:discordsrv:1.26.0'
 }
 
 def targetJavaVersion = 17
