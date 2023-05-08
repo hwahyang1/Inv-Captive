@@ -1,14 +1,13 @@
 package space.hwahyang.invcaptive;
 
-import github.scarsz.discordsrv.DiscordSRV;
 import github.scarsz.discordsrv.api.commands.PluginSlashCommand;
 import github.scarsz.discordsrv.api.commands.SlashCommand;
 import github.scarsz.discordsrv.api.commands.SlashCommandProvider;
 import github.scarsz.discordsrv.dependencies.jda.api.events.interaction.SlashCommandEvent;
 import github.scarsz.discordsrv.dependencies.jda.api.interactions.commands.OptionType;
 import github.scarsz.discordsrv.dependencies.jda.api.interactions.commands.build.CommandData;
-import github.scarsz.discordsrv.dependencies.jda.api.interactions.commands.build.SubcommandData;
 import org.bukkit.Material;
+import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.event.EventHandler;
@@ -24,11 +23,13 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
 
@@ -42,6 +43,7 @@ public final class Inv_Captive extends JavaPlugin implements Listener, SlashComm
     File dataFolder;
 
     InventoryManager inventoryManager = new InventoryManager();
+    CommandsManager commandsManager = new CommandsManager();
 
     private FileConfiguration inventoryData = null;
     private File inventoryDataFile = null;
@@ -57,43 +59,58 @@ public final class Inv_Captive extends JavaPlugin implements Listener, SlashComm
 
         dataFolder = getDataFolder();
 
+        /* ================================================ */
+        logger.info(getInventory().getInt("groups.total") + "");
+        logger.info(getInventory().getStringList("groups.group1.players").toString());
+        logger.info(getInventory().getIntegerList("groups.group1.unlockItems").toString());
+        logger.info(getInventory().getIntegerList("groups.group1.lastItems").toString());
+
+        for (var c: inventoryManager.getMaterialArray()) {
+            logger.info(c.name());
+        }
+        /* ================================================ */
+
         logger.info("Inv-Captive Enabled.");
     }
 
     @Override
     public Set<PluginSlashCommand> getSlashCommands() {
         return new HashSet<>(Arrays.asList(
-                new PluginSlashCommand(this, new CommandData("µî·Ï", "ÆÀÀ» µî·ÏÇÕ´Ï´Ù.")
-                        .addOption(OptionType.STRING, "ÇÃ·¹ÀÌ¾î1", "µî·Ï ÇÒ Ã¹ ¹øÂ° ÇÃ·¹ÀÌ¾î¸¦ ÁöÁ¤ÇÕ´Ï´Ù.", true)
-                        .addOption(OptionType.STRING, "ÇÃ·¹ÀÌ¾î2", "µî·Ï ÇÒ µÎ ¹øÂ° ÇÃ·¹ÀÌ¾î¸¦ ÁöÁ¤ÇÕ´Ï´Ù.")
+                new PluginSlashCommand(this, new CommandData("ë“±ë¡", "íŒ€ì„ ë“±ë¡í•©ë‹ˆë‹¤.")
+                        .addOption(OptionType.STRING, "í”Œë ˆì´ì–´1", "ë“±ë¡ í•  ì²« ë²ˆì§¸ í”Œë ˆì´ì–´ë¥¼ ì§€ì •í•©ë‹ˆë‹¤.", true)
+                        .addOption(OptionType.STRING, "í”Œë ˆì´ì–´2", "ë“±ë¡ í•  ë‘ ë²ˆì§¸ í”Œë ˆì´ì–´ë¥¼ ì§€ì •í•©ë‹ˆë‹¤.")
                 ),
-                new PluginSlashCommand(this, new CommandData("Á¤º¸", "Æ¯Á¤ ÇÃ·¹ÀÌ¾î(ÆÀ)ÀÇ ÁøÀüµµ¸¦ È®ÀÎÇÕ´Ï´Ù.")
-                        .addOption(OptionType.STRING, "ÇÃ·¹ÀÌ¾î", "È®ÀÎ ÇÒ ÇÃ·¹ÀÌ¾î¸¦ ÁöÁ¤ÇÕ´Ï´Ù.", true)
+                new PluginSlashCommand(this, new CommandData("ì •ë³´", "íŠ¹ì • í”Œë ˆì´ì–´(íŒ€)ì˜ ì§„ì „ë„ë¥¼ í™•ì¸í•©ë‹ˆë‹¤.")
+                        .addOption(OptionType.STRING, "í”Œë ˆì´ì–´", "í™•ì¸ í•  í”Œë ˆì´ì–´ë¥¼ ì§€ì •í•©ë‹ˆë‹¤.", true)
                 ),
-                new PluginSlashCommand(this, new CommandData("¼øÀ§", "ÀÎº¥Åä¸® ÇØ±İ ¼øÀ§¸¦ È®ÀÎÇÕ´Ï´Ù."))
+                new PluginSlashCommand(this, new CommandData("ìˆœìœ„", "ì¸ë²¤í† ë¦¬ í•´ê¸ˆ ìˆœìœ„ë¥¼ í™•ì¸í•©ë‹ˆë‹¤."))
         ));
     }
 
-    @SlashCommand(path = "µî·Ï")
+    @SlashCommand(path = "ë“±ë¡")
     public void pingCommand(SlashCommandEvent event) {
+        logger.info(event.getOption("í”Œë ˆì´ì–´1").toString());
+        logger.info(event.getOption("í”Œë ˆì´ì–´2").toString());
         event.reply("Pong!").queue();
     }
 
-    @SlashCommand(path = "Á¤º¸")
+    @SlashCommand(path = "ì •ë³´")
     public void bestPlugin(SlashCommandEvent event) {
+        logger.info(event.getOption("í”Œë ˆì´ì–´").toString());
         event.reply("DiscordSRV!").queue();
     }
-    @SlashCommand(path = "¼øÀ§")
+
+    @SlashCommand(path = "ìˆœìœ„")
     public void bestFriend(SlashCommandEvent event) {
         event.reply("Dogs!").queue();
     }
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
-        //if (event.getPlayer().hasPermission("invCaptive.admin")) return;
+        if (event.getPlayer().hasPermission("invCaptive.admin")) return;
 
         event.setJoinMessage(null);
-        event.getPlayer().kickPlayer("¡×cµî·ÏµÇÁö ¾ÊÀº ÇÃ·¹ÀÌ¾î(ÆÀ)ÀÔ´Ï´Ù.\nµğ½ºÄÚµå¿¡¼­ ÆÀ µî·Ï ÀıÂ÷¸¦ ¸ÕÀú ÁøÇà ÇØ ÁÖ¼¼¿ä.");
+        event.getPlayer().kickPlayer(getConfig().getString("deniedMessage").replace("&", "Â§"));
     }
 
     @EventHandler
@@ -188,14 +205,19 @@ public final class Inv_Captive extends JavaPlugin implements Listener, SlashComm
     }
 
     public void saveInventory() {
-        if (inventoryData == null) {
+        /*if (inventoryData == null) {
             inventoryDataFile = new File(dataFolder, "inventory.yml");
         }
-        this.saveResource("inventory.yml", true);
+        this.saveResource("inventory.yml", true);*/
+        try {
+            inventoryData.save(inventoryDataFile);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public void reloadInventory() {
-        if (inventoryDataFile == null) {
+        /*if (inventoryDataFile == null) {
             inventoryDataFile = new File(dataFolder, "inventory.yml");
         }
         inventoryData = YamlConfiguration.loadConfiguration(inventoryDataFile);
@@ -204,6 +226,20 @@ public final class Inv_Captive extends JavaPlugin implements Listener, SlashComm
         if (defConfigStream != null) {
             YamlConfiguration defConfig = YamlConfiguration.loadConfiguration(defConfigStream);
             inventoryData.setDefaults(defConfig);
+        }*/
+        inventoryDataFile = new File(getDataFolder(), "inventory.yml");
+        if (!inventoryDataFile.exists()) {
+            inventoryDataFile.getParentFile().mkdirs();
+            saveResource("inventory.yml", false);
+        }
+
+        inventoryData = new YamlConfiguration();
+        try {
+            inventoryData.load(inventoryDataFile);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (InvalidConfigurationException e) {
+            throw new RuntimeException(e);
         }
     }
 

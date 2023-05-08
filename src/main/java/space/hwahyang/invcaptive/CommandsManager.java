@@ -11,7 +11,7 @@ import org.bukkit.inventory.ItemStack;
 public class CommandsManager implements CommandExecutor {
 
     private void sendMessage(CommandSender sender, String message) {
-        sender.sendMessage("[Inv-Captive] " + message.replace("&", "¡×"));
+        sender.sendMessage("[Inv-Captive] " + message.replace("&", "Â§"));
     }
 
     // https://www.digminecraft.com/lists/color_list_pc.php

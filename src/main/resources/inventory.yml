@@ -1,5 +1,10 @@
 groups:
-  groupName:
-    players: [playerName, playerName]
+  total: 2
+  group1:
+    players: [HwaHyang]
+    unlockItems: [0, 0, 0, 0, 0]
+    lastItems: [0, 0, 0, 0, 0, 0, 0]
+  group2:
+    players: [Player1, Player2]
     unlockItems: [0, 0, 0, 0, 0]
     lastItems: [0, 0, 0, 0, 0, 0, 0]
