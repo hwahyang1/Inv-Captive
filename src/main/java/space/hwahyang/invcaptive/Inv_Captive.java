@@ -27,10 +27,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.logging.Logger;
 
 // https://github.com/monun/inv-captive
@@ -58,17 +55,6 @@ public final class Inv_Captive extends JavaPlugin implements Listener, SlashComm
         getCommand("invCaptiveAdmin").setExecutor(new CommandsManager());
 
         dataFolder = getDataFolder();
-
-        /* ================================================ */
-        logger.info(getInventory().getInt("groups.total") + "");
-        logger.info(getInventory().getStringList("groups.group1.players").toString());
-        logger.info(getInventory().getIntegerList("groups.group1.unlockItems").toString());
-        logger.info(getInventory().getIntegerList("groups.group1.lastItems").toString());
-
-        for (var c: inventoryManager.getMaterialArray()) {
-            logger.info(c.name());
-        }
-        /* ================================================ */
 
         logger.info("Inv-Captive Enabled.");
     }
@@ -209,11 +195,11 @@ public final class Inv_Captive extends JavaPlugin implements Listener, SlashComm
             inventoryDataFile = new File(dataFolder, "inventory.yml");
         }
         this.saveResource("inventory.yml", true);*/
-        try {
+        /*try {
             inventoryData.save(inventoryDataFile);
         } catch (IOException e) {
             e.printStackTrace();
-        }
+        }*/
     }
 
     public void reloadInventory() {
