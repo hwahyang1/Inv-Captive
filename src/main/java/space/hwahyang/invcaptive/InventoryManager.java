@@ -5,11 +5,15 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.*;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.stream.Collectors;
 
 public class InventoryManager {
 
-    int inventoryMax = 9 * 4 + 5; // 플레이어 인벤토리 36칸 + 장비 4칸 + 보조손 1칸 = 41칸
+    private int inventoryMax = 9 * 4 + 5; // 플레이어 인벤토리 36칸 + 장비 4칸 + 보조손 1칸 = 41칸
+    public int getInventoryMax() {
+        return inventoryMax;
+    }
 
     /**
      * 배치 가능한 Material을 무작위 배열로 반환합니다.
@@ -47,6 +51,52 @@ public class InventoryManager {
         for (int i = 0; i < inventoryMax; i++) {
             data.add(player.getInventory().getItem(i));
         }
+        return data;
+    }
+
+    /* =========================== YAML <-> Code Convert =========================== */
+
+    public List<String> convertMaterialArrayToStringArray(List<Material> original) {
+        List<String> data = new ArrayList<String>();
+
+        for (Material material: original) {
+            data.add(material.name());
+        }
+
+        return data;
+    }
+
+    public List<Material> convertStringArrayToMaterialArray(List<String> original) {
+        List<Material> data = new ArrayList<Material>();
+
+        for (String name: original) {
+            data.add(Material.getMaterial(name));
+        }
+
+        return data;
+    }
+
+    public SimpleEntry<List<String>, List<Integer>> convertItemStackArrayToStringPair(List<ItemStack> original) {
+        SimpleEntry<List<String>, List<Integer>> data = new SimpleEntry<List<String>, List<Integer>>(new ArrayList<String>(), new ArrayList<Integer>());
+
+        for (ItemStack itemStack: original) {
+            data.getKey().add(itemStack.getType().name());
+            data.getValue().add(itemStack.getAmount());
+        }
+
+        return data;
+    }
+
+    public List<ItemStack> convertStringPairToItemStackArray(List<String> stringList, List<Integer> integerList) {
+        return convertStringPairToItemStackArray(new SimpleEntry<List<String>, List<Integer>>(stringList, integerList));
+    }
+    public List<ItemStack> convertStringPairToItemStackArray(SimpleEntry<List<String>, List<Integer>> original) {
+        List<ItemStack> data = new ArrayList<ItemStack>();
+
+        for (int i = 0; i < original.getKey().size(); i++) {
+            data.add(new ItemStack(Material.getMaterial(original.getKey().get(i)), original.getValue().get(i)));
+        }
+
         return data;
     }
 }

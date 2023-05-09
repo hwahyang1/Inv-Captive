@@ -14,13 +14,14 @@ commands:
     usage: "Usage: /<command> help"
     aliases: [captive]
     permission: invCaptive.player
-    permission-message: "You do not have permission!"
+    permission-message: "§cYou do not have permission to use this command."
   invCaptiveAdmin:
     description: Inv-Captive Admin Commands.
     usage: "Usage: /<command> help"
+    flagrate: [help ender]
     aliases: [captiveAdmin]
     permission: invCaptive.admin
-    permission-message: "You do not have permission!"
+    permission-message: "§cYou do not have permission to use this command."
 permissions:
   invCaptive.player:
     description: Inv-Captive Player

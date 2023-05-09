@@ -6,10 +6,16 @@ import github.scarsz.discordsrv.api.commands.SlashCommandProvider;
 import github.scarsz.discordsrv.dependencies.jda.api.events.interaction.SlashCommandEvent;
 import github.scarsz.discordsrv.dependencies.jda.api.interactions.commands.OptionType;
 import github.scarsz.discordsrv.dependencies.jda.api.interactions.commands.build.CommandData;
-import org.bukkit.Material;
+import org.bukkit.*;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
@@ -19,28 +25,31 @@ import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.event.world.WorldSaveEvent;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.logging.Logger;
 
 // https://github.com/monun/inv-captive
-public final class Inv_Captive extends JavaPlugin implements Listener, SlashCommandProvider {
+public final class Inv_Captive extends JavaPlugin implements CommandExecutor, Listener, SlashCommandProvider {
 
-    FileConfiguration config = getConfig();
+    private final FileConfiguration config = getConfig();
 
-    Logger logger = getLogger();
+    private final Logger logger = getLogger();
 
-    File dataFolder;
-
-    InventoryManager inventoryManager = new InventoryManager();
-    CommandsManager commandsManager = new CommandsManager();
+    private final InventoryManager inventoryManager = new InventoryManager();
+    private final TeamManager teamManager = new TeamManager();
+    private final CommandsManager commandsManager = new CommandsManager(this);
+    public InventoryManager getInventoryManager() {
+        return inventoryManager;
+    }
+    public TeamManager getTeamManager() {
+        return teamManager;
+    }
 
     private FileConfiguration inventoryData = null;
     private File inventoryDataFile = null;
@@ -51,10 +60,10 @@ public final class Inv_Captive extends JavaPlugin implements Listener, SlashComm
 
         this.saveDefaultConfig();
 
-        getCommand("invCaptive").setExecutor(new CommandsManager());
-        getCommand("invCaptiveAdmin").setExecutor(new CommandsManager());
+        reloadInventory();
 
-        dataFolder = getDataFolder();
+        getCommand("invCaptive").setExecutor(this);
+        getCommand("invCaptiveAdmin").setExecutor(this);
 
         logger.info("Inv-Captive Enabled.");
     }
@@ -74,29 +83,40 @@ public final class Inv_Captive extends JavaPlugin implements Listener, SlashComm
     }
 
     @SlashCommand(path = "등록")
-    public void pingCommand(SlashCommandEvent event) {
-        logger.info(event.getOption("플레이어1").toString());
-        logger.info(event.getOption("플레이어2").toString());
-        event.reply("Pong!").queue();
+    public void addCommand(SlashCommandEvent event) {
+        String p1 = event.getOption("플레이어1").getAsString().replaceAll("\\s+", "");
+        String p2 = event.getOption("플레이어2") == null ? null : event.getOption("플레이어2").getAsString().replaceAll("\\s+", "");
+        String response = "";
+        if (p2 == null) {
+            int data = teamManager.createTeam(this, new String[] {p1.toLowerCase()}, inventoryManager);
+            response = data == -1 ? "플레이어 등록에 실패했습니다.\n등록한 플레이어가 이미 다른 팀에 등록되어 있을 수도 있습니다." : String.format("성공적으로 아래 플레이어를 팀으로 등록했습니다.\n%d팀: `%s`", data, p1);
+        }
+        else {
+            int data = teamManager.createTeam(this, new String[] {p1.toLowerCase(), p2.toLowerCase()}, inventoryManager);
+            response = data == -1 ? "플레이어 등록에 실패했습니다.\n등록한 플레이어가 이미 다른 팀에 등록되어 있을 수도 있습니다." : String.format("성공적으로 아래 플레이어를 팀으로 등록했습니다.\n%d팀: `%s`, `%s`", data, p1, p2);
+        }
+        event.reply(response).queue();
     }
 
     @SlashCommand(path = "정보")
-    public void bestPlugin(SlashCommandEvent event) {
+    public void infoCommand(SlashCommandEvent event) {
         logger.info(event.getOption("플레이어").toString());
         event.reply("DiscordSRV!").queue();
     }
 
     @SlashCommand(path = "순위")
-    public void bestFriend(SlashCommandEvent event) {
+    public void rankCommand(SlashCommandEvent event) {
         event.reply("Dogs!").queue();
     }
 
     @EventHandler
-    public void onPlayerJoin(PlayerJoinEvent event) {
+    public void onPlayerLogin(PlayerLoginEvent event) {
         if (event.getPlayer().hasPermission("invCaptive.admin")) return;
 
-        event.setJoinMessage(null);
-        event.getPlayer().kickPlayer(getConfig().getString("deniedMessage").replace("&", "§"));
+        if (teamManager.getPlayerTeam(event.getPlayer().getName(), this::getInventory, this) == -1) {
+            event.disallow(PlayerLoginEvent.Result.KICK_OTHER, getConfig().getString("deniedMessage").replace("&", "§"));
+            return;
+        }
     }
 
     @EventHandler
@@ -108,6 +128,36 @@ public final class Inv_Captive extends JavaPlugin implements Listener, SlashComm
     @EventHandler
     public void onWorldSave(WorldSaveEvent event) {
         saveInventory();
+    }
+
+    @EventHandler
+    public static void onPortalTravel(PlayerPortalEvent event)
+    {
+        if (event.getPlayer().hasPermission("invCaptive.admin")) return;
+
+        Player player = event.getPlayer();
+        if (event.getCause() == PlayerPortalEvent.TeleportCause.END_PORTAL) {
+            World separateWorld;
+            if (Bukkit.getWorld("world_the_end_" + player.getName()) == null) {
+                WorldCreator worldCreator = new WorldCreator("world_the_end_" + player.getName());
+                worldCreator.environment(World.Environment.THE_END);
+                separateWorld = Bukkit.createWorld(worldCreator);
+                Bukkit.getServer().getWorlds().add(separateWorld);
+            } else {
+                separateWorld = Bukkit.getWorld("world_the_end_" + player.getName());
+            }
+
+            // End World의 스폰좌표는 포탈지점 -> 원래 엔드로 갈 때 스폰되어야 할 위치를 직접 찾아줘야 함!!!
+            Location highestLocation = separateWorld.getHighestBlockAt(0, 0).getLocation();
+
+            Block currentBlock = separateWorld.getBlockAt(highestLocation);
+            while (currentBlock.getType() == Material.OBSIDIAN) {
+                currentBlock = currentBlock.getRelative(BlockFace.DOWN);
+            }
+
+            Location spawnLocation = currentBlock.getRelative(BlockFace.UP).getLocation();
+            separateWorld.setSpawnLocation(spawnLocation.getBlockX(), spawnLocation.getBlockY(), spawnLocation.getBlockZ());
+        }
     }
 
     @EventHandler
@@ -180,7 +230,24 @@ public final class Inv_Captive extends JavaPlugin implements Listener, SlashComm
 
     @EventHandler
     public void onPlayerDeath(PlayerDeathEvent event) {
+        event.setKeepInventory(true);
 
+        if (event.getEntity().getPlayer() != null && event.getEntity().getPlayer().hasPermission("invCaptive.admin")) return;
+
+        // 방벽을 제외한 나머지를 드랍시킴
+        List<ItemStack> drops = event.getDrops();
+        drops.clear();
+
+        Inventory inventory = event.getEntity().getInventory();
+        for (int i = 0; i < inventory.getSize(); i++) {
+            ItemStack itemStack = inventory.getItem(i);
+            if (itemStack != null) {
+                if (itemStack.getType() != Material.BARRIER) {
+                    drops.add(itemStack);
+                    inventory.setItem(i, null);
+                }
+            }
+        }
     }
 
     @Override
@@ -190,29 +257,21 @@ public final class Inv_Captive extends JavaPlugin implements Listener, SlashComm
         logger.info("Inv-Captive Disabled.");
     }
 
+
+    @Override
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        return commandsManager.onCommand(sender, command, label, args);
+    }
+
     public void saveInventory() {
-        /*if (inventoryData == null) {
-            inventoryDataFile = new File(dataFolder, "inventory.yml");
-        }
-        this.saveResource("inventory.yml", true);*/
-        /*try {
+        try {
             inventoryData.save(inventoryDataFile);
         } catch (IOException e) {
             e.printStackTrace();
-        }*/
+        }
     }
 
     public void reloadInventory() {
-        /*if (inventoryDataFile == null) {
-            inventoryDataFile = new File(dataFolder, "inventory.yml");
-        }
-        inventoryData = YamlConfiguration.loadConfiguration(inventoryDataFile);
-
-        Reader defConfigStream = new InputStreamReader(this.getResource("inventory.yml"), StandardCharsets.UTF_8);
-        if (defConfigStream != null) {
-            YamlConfiguration defConfig = YamlConfiguration.loadConfiguration(defConfigStream);
-            inventoryData.setDefaults(defConfig);
-        }*/
         inventoryDataFile = new File(getDataFolder(), "inventory.yml");
         if (!inventoryDataFile.exists()) {
             inventoryDataFile.getParentFile().mkdirs();

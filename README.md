@@ -13,7 +13,7 @@ JDK 19
 
 [![](http://img.youtube.com/vi/LGccWcHiN6s/mqdefault.jpg)](https://youtu.be/LGccWcHiN6s?list=PLQpeWEnYoYBp6lQktDpM1QnBmG9TS7gWT)
 
-소스: [monun/inv-captive](https://github.com/monun/inv-captive)
+원본 소스: [monun/inv-captive](https://github.com/monun/inv-captive)
 
 ## 실행 파일
 [Releases](https://github.com/hwahyang1/Inv-Captive/releases)를 참고하세요.
@@ -24,4 +24,4 @@ JDK 19
 ## 라이선스
 GPLv3
 
-자세한 사항은 원본의 라이선스를 따릅니다.
+본 레포지토리의 라이선스와 원본 레포지토리의 라이선스가 상이한 경우, 원본 레포지토리의 라이선스를 우선적으로 따릅니다.
