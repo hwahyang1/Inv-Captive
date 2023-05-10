@@ -7,42 +7,51 @@ import github.scarsz.discordsrv.dependencies.jda.api.events.interaction.SlashCom
 import github.scarsz.discordsrv.dependencies.jda.api.interactions.commands.OptionType;
 import github.scarsz.discordsrv.dependencies.jda.api.interactions.commands.build.CommandData;
 import org.bukkit.*;
-import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Firework;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.entity.ItemSpawnEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.*;
+import org.bukkit.event.server.ServerListPingEvent;
 import org.bukkit.event.world.WorldSaveEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.logging.Logger;
 
-// https://github.com/monun/inv-captive
+/**
+ * @author HwaHyang
+ * @original monun/inv-captive
+ */
 public final class Inv_Captive extends JavaPlugin implements CommandExecutor, Listener, SlashCommandProvider {
 
     private final FileConfiguration config = getConfig();
 
     private final Logger logger = getLogger();
 
-    private final InventoryManager inventoryManager = new InventoryManager();
-    private final TeamManager teamManager = new TeamManager();
+    private final InventoryManager inventoryManager = new InventoryManager(this);
+    private final TeamManager teamManager = new TeamManager(this);
     private final CommandsManager commandsManager = new CommandsManager(this);
     public InventoryManager getInventoryManager() {
         return inventoryManager;
@@ -54,6 +63,7 @@ public final class Inv_Captive extends JavaPlugin implements CommandExecutor, Li
     private FileConfiguration inventoryData = null;
     private File inventoryDataFile = null;
 
+    @SuppressWarnings("unchecked")
     @Override
     public void onEnable() {
         this.getServer().getPluginManager().registerEvents(this, this);
@@ -64,6 +74,24 @@ public final class Inv_Captive extends JavaPlugin implements CommandExecutor, Li
 
         getCommand("invCaptive").setExecutor(this);
         getCommand("invCaptiveAdmin").setExecutor(this);
+
+        for (Player player: Bukkit.getOnlinePlayers()) {
+            if (player.hasPermission("invCaptive.admin")) continue;
+            int team = teamManager.getPlayerTeam(player.getName(), this::getInventory);
+            if (team == -1) continue;
+
+            player.setDisplayName(String.format(getConfig().getString("messages.minecraft.playerName").replace("&", "§"), team, player.getName()));
+            player.setPlayerListName(String.format(getConfig().getString("messages.minecraft.playerName").replace("&", "§"), team, player.getName()));
+
+            // 엔드가 로드되어 있지 않은 경우, 로드
+            World separateWorld = Bukkit.getWorld("world_the_end_Group" + team);
+            if (separateWorld == null)
+                separateWorld = new WorldCreator("world_the_end_Group" + team).environment(World.Environment.THE_END).createWorld();
+
+            String rootKey = String.format("groups.group%d.", team);
+            List<?> lastInventoryData = getInventory().getList(rootKey + "lastItems");
+            inventoryManager.apply(player, (List<ItemStack>) lastInventoryData);
+        }
 
         logger.info("Inv-Captive Enabled.");
     }
@@ -89,80 +117,155 @@ public final class Inv_Captive extends JavaPlugin implements CommandExecutor, Li
         String response = "";
         if (p2 == null) {
             int data = teamManager.createTeam(this, new String[] {p1.toLowerCase()}, inventoryManager);
-            response = data == -1 ? "플레이어 등록에 실패했습니다.\n등록한 플레이어가 이미 다른 팀에 등록되어 있을 수도 있습니다." : String.format("성공적으로 아래 플레이어를 팀으로 등록했습니다.\n%d팀: `%s`", data, p1);
+            response = data == -1 ? getConfig().getString("messages.discord.teamRegisterFailed") : String.format(getConfig().getString("messages.discord.teamRegistered.single").replace("&", "§"), data, p1);
         }
         else {
             int data = teamManager.createTeam(this, new String[] {p1.toLowerCase(), p2.toLowerCase()}, inventoryManager);
-            response = data == -1 ? "플레이어 등록에 실패했습니다.\n등록한 플레이어가 이미 다른 팀에 등록되어 있을 수도 있습니다." : String.format("성공적으로 아래 플레이어를 팀으로 등록했습니다.\n%d팀: `%s`, `%s`", data, p1, p2);
+            response = data == -1 ? getConfig().getString("messages.discord.teamRegisterFailed") : String.format(getConfig().getString("messages.discord.teamRegistered.duo").replace("&", "§"), data, p1, p2);
         }
         event.reply(response).queue();
     }
 
     @SlashCommand(path = "정보")
     public void infoCommand(SlashCommandEvent event) {
-        logger.info(event.getOption("플레이어").toString());
-        event.reply("DiscordSRV!").queue();
+        String input = event.getOption("플레이어").getAsString().toLowerCase();
+        String result = teamManager.getTeamInfo(input, getConfig().getString("messages.discord.commands.teamInfo"), this::getInventory);
+
+        event.reply(result == null ? String.format(getConfig().getString("messages.discord.commands.invalid"), input) : result).queue();
     }
 
     @SlashCommand(path = "순위")
     public void rankCommand(SlashCommandEvent event) {
-        event.reply("Dogs!").queue();
+        String result = teamManager.getTop5Teams(getConfig().getString("messages.discord.commands.ranking"), this::getInventory);
+
+        event.reply(result).queue();
+    }
+
+    @EventHandler
+    public void onServerListPing(ServerListPingEvent event) {
+        event.setMotd(getConfig().getString("messages.minecraft.motd").replace("&", "§"));
+
+        LocalDate today = LocalDate.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+        event.setMaxPlayers(Integer.parseInt(today.format(formatter)));
     }
 
     @EventHandler
     public void onPlayerLogin(PlayerLoginEvent event) {
-        if (event.getPlayer().hasPermission("invCaptive.admin")) return;
+        Player player = event.getPlayer();
 
-        if (teamManager.getPlayerTeam(event.getPlayer().getName(), this::getInventory, this) == -1) {
-            event.disallow(PlayerLoginEvent.Result.KICK_OTHER, getConfig().getString("deniedMessage").replace("&", "§"));
+        if (player.hasPermission("invCaptive.admin")) return;
+
+        int team = teamManager.getPlayerTeam(player.getName(), this::getInventory);
+        if (team == -1) {
+            event.disallow(PlayerLoginEvent.Result.KICK_OTHER, (getConfig().getString("messages.minecraft.prefix") + "\n" + getConfig().getString("messages.minecraft.messages.unregisteredTeam")).replace("&", "§"));
             return;
         }
+
+        // 엔드가 로드되어 있지 않은 경우, 로드
+        World separateWorld = Bukkit.getWorld("world_the_end_Group" + team);
+        if (separateWorld == null)
+            separateWorld = new WorldCreator("world_the_end_Group" + team).environment(World.Environment.THE_END).createWorld();
+    }
+
+    @SuppressWarnings("unchecked")
+    @EventHandler
+    public void onPlayerJoin(PlayerJoinEvent event) {
+        Player player = event.getPlayer();
+
+        if (player.hasPermission("invCaptive.admin")) return;
+
+        // 검증 및 엔드 로드는 onPlayerLogin에서 모두 처리했음 -> 나머지 수행
+
+        int team = teamManager.getPlayerTeam(player.getName(), this::getInventory);
+
+        player.setDisplayName(String.format(getConfig().getString("messages.minecraft.playerName").replace("&", "§"), team, player.getName()));
+        player.setPlayerListName(String.format(getConfig().getString("messages.minecraft.playerName").replace("&", "§"), team, player.getName()));
+
+        event.setJoinMessage(String.format(("&e" + getConfig().getString("messages.minecraft.playerName") + "님이 서버에 접속했습니다.").replace("&", "§"), team, player.getName()));
+
+        if (player.getFirstPlayed() == 0) {
+            List<String> teamPlayers = teamManager.getTeamPlayers(team, this::getInventory);
+            for (String current: teamPlayers) {
+                // 찾는 대상이 현재 플레이어 이름과 같다면 무시
+                if (current.equals(player.getName().toLowerCase())) continue;
+
+                for (Player onlinePlayer: Bukkit.getOnlinePlayers()) {
+                    // 찾는 대상과 온라인 대상이 같다면 이동
+                    if (current.equals(onlinePlayer.getName().toLowerCase())) {
+                        player.teleport(onlinePlayer);
+                        break;
+                    }
+                }
+            }
+        }
+
+        String rootKey = String.format("groups.group%d.", team);
+        List<?> lastInventoryData = getInventory().getList(rootKey + "lastItems");
+        inventoryManager.apply(player, (List<ItemStack>) lastInventoryData);
     }
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
-        if (event.getPlayer().hasPermission("invCaptive.admin")) return;
+        Player player = event.getPlayer();
 
+        if (player.hasPermission("invCaptive.admin")) return;
+
+        int team = teamManager.getPlayerTeam(player.getName(), this::getInventory);
+
+        event.setQuitMessage(String.format(("&e" + getConfig().getString("messages.minecraft.playerName") + "님이 서버를 나갔습니다.").replace("&", "§"), team, player.getName()));
+
+        String rootKey = String.format("groups.group%d.", team);
+        List<ItemStack> lastInventoryData = inventoryManager.export(player);
+        getInventory().set(rootKey + "lastItems", lastInventoryData);
     }
 
     @EventHandler
     public void onWorldSave(WorldSaveEvent event) {
+        List<Integer> processedTeams = new ArrayList<Integer>();
+        for (Player player: Bukkit.getOnlinePlayers()) {
+            if (player.hasPermission("invCaptive.admin")) continue;
+
+            int team = teamManager.getPlayerTeam(player.getName(), this::getInventory);
+            if (processedTeams.contains(team)) continue;
+
+            String rootKey = String.format("groups.group%d.", team);
+            List<ItemStack> lastInventoryData = inventoryManager.export(player);
+            getInventory().set(rootKey + "lastItems", lastInventoryData);
+            processedTeams.add(team);
+        }
+
         saveInventory();
+        reloadInventory();
     }
 
     @EventHandler
-    public static void onPortalTravel(PlayerPortalEvent event)
+    public void onPortalTravel(PlayerPortalEvent event)
     {
-        if (event.getPlayer().hasPermission("invCaptive.admin")) return;
-
         Player player = event.getPlayer();
+
+        if (player.hasPermission("invCaptive.admin")) return;
+
         if (event.getCause() == PlayerPortalEvent.TeleportCause.END_PORTAL) {
-            World separateWorld;
-            if (Bukkit.getWorld("world_the_end_" + player.getName()) == null) {
-                WorldCreator worldCreator = new WorldCreator("world_the_end_" + player.getName());
-                worldCreator.environment(World.Environment.THE_END);
-                separateWorld = Bukkit.createWorld(worldCreator);
-                Bukkit.getServer().getWorlds().add(separateWorld);
-            } else {
-                separateWorld = Bukkit.getWorld("world_the_end_" + player.getName());
+            int team = teamManager.getPlayerTeam(player.getName(), this::getInventory);
+            World separateWorld = Bukkit.getWorld("world_the_end_Group" + team);
+            if (separateWorld == null)
+                separateWorld = new WorldCreator("world_the_end_Group" + team).environment(World.Environment.THE_END).createWorld();
+
+            if (separateWorld == null) {
+                event.setCancelled(true);
+                return;
             }
 
-            // End World의 스폰좌표는 포탈지점 -> 원래 엔드로 갈 때 스폰되어야 할 위치를 직접 찾아줘야 함!!!
-            Location highestLocation = separateWorld.getHighestBlockAt(0, 0).getLocation();
-
-            Block currentBlock = separateWorld.getBlockAt(highestLocation);
-            while (currentBlock.getType() == Material.OBSIDIAN) {
-                currentBlock = currentBlock.getRelative(BlockFace.DOWN);
-            }
-
-            Location spawnLocation = currentBlock.getRelative(BlockFace.UP).getLocation();
-            separateWorld.setSpawnLocation(spawnLocation.getBlockX(), spawnLocation.getBlockY(), spawnLocation.getBlockZ());
+            event.setTo(separateWorld.getSpawnLocation());
         }
     }
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (event.getWhoClicked().hasPermission("invCaptive.admin")) return;
+        if (!(event.getWhoClicked() instanceof Player player)) return;
+
+        if (player.hasPermission("invCaptive.admin")) return;
 
         ItemStack itemStack = event.getCurrentItem();
 
@@ -172,73 +275,166 @@ public final class Inv_Captive extends JavaPlugin implements CommandExecutor, Li
         }
 
         if (event.getAction() == InventoryAction.HOTBAR_SWAP) {
-            ItemStack itemStack2 = event.getWhoClicked().getInventory().getItem(event.getHotbarButton());
-            if (itemStack2 != null && itemStack2.getType() == Material.BARRIER)
+            ItemStack itemStack2 = player.getInventory().getItem(event.getHotbarButton());
+            if (itemStack2 != null && itemStack2.getType() == Material.BARRIER) {
                 event.setCancelled(true);
+                return;
+            }
         }
+
+        Bukkit.getScheduler().runTask(this, () -> syncPlayerTeam(player));
     }
 
     @EventHandler
     public void onPlayerDropItem(PlayerDropItemEvent event) {
-        if (event.getPlayer().hasPermission("invCaptive.admin")) return;
+        Player player = event.getPlayer();
+
+        if (player.hasPermission("invCaptive.admin")) return;
 
         ItemStack itemStack = event.getItemDrop().getItemStack();
         if (itemStack.getType() == Material.BARRIER) event.setCancelled(true);
+
+        Bukkit.getScheduler().runTask(this, () -> syncPlayerTeam(player));
+    }
+
+    @EventHandler
+    public void onEntityPickupItem(EntityPickupItemEvent event) {
+        if (!(event.getEntity() instanceof Player player)) return;
+
+        if (player.hasPermission("invCaptive.admin")) return;
+
+        Bukkit.getScheduler().runTask(this, () -> syncPlayerTeam(player));
+    }
+
+    @EventHandler
+    public void onBlockPlace(BlockPlaceEvent event) {
+        Player player = event.getPlayer();
+
+        if (event.getPlayer().hasPermission("invCaptive.admin")) return;
+
+        Bukkit.getScheduler().runTask(this, () -> syncPlayerTeam(player));
     }
 
     @EventHandler
     public void onBlockBreak(BlockBreakEvent event) {
+        Player player = event.getPlayer();
+
         if (event.getPlayer().hasPermission("invCaptive.admin")) return;
 
+        Inventory inventory = player.getInventory();
+        Material block = event.getBlock().getType();
+        int team = teamManager.getPlayerTeam(player.getName(), this::getInventory);
+        List<Material> unlockItems = teamManager.getTeamUnlockItems(team, this::getInventory);
+        Material material;
+        for (int i = 0; i < unlockItems.size(); i++) {
+            // 이미 열린 칸은 지나감
+            if (inventory.getItem(i) == null || inventory.getItem(i).getType() != Material.BARRIER) continue;
+
+            material = unlockItems.get(i);
+
+            // 해금 조건 달성
+            if (block.name().equals(material.name())) {
+                getServer().broadcastMessage(String.format((/*getConfig().getString("messages.minecraft.prefix") + " " + */getConfig().getString("messages.minecraft.messages.inventoryUnlocked")).replace("&", "§"), player.getName(), team, block.name()));
+
+                Location location = player.getLocation();
+                FireworkEffect effect = FireworkEffect.builder()
+                        .withColor(Color.YELLOW)
+                        .withFade(Color.GRAY)
+                        .with(FireworkEffect.Type.BALL_LARGE)
+                        .trail(true)
+                        .build();
+                Firework firework = (Firework) location.getWorld().spawnEntity(location, EntityType.FIREWORK);
+                FireworkMeta meta = firework.getFireworkMeta();
+                meta.addEffect(effect);
+                firework.setFireworkMeta(meta);
+                location.getWorld().playSound(location, Sound.ENTITY_FIREWORK_ROCKET_LAUNCH, 1, 1);
+
+                inventoryManager.openInventorySlot(player, i);
+                Bukkit.getScheduler().runTask(this, () -> syncPlayerTeam(player));
+                break;
+            }
+        }
     }
 
     @EventHandler
     public void onInteract(PlayerInteractEvent event) {
+        Player player = event.getPlayer();
+
         if (event.getPlayer().hasPermission("invCaptive.admin")) return;
 
         ItemStack itemStack = event.getItem();
-        if (itemStack != null && itemStack.getType() == Material.BARRIER) event.setCancelled(true);
+        if (itemStack != null && itemStack.getType() == Material.BARRIER) {
+            event.setCancelled(true);
+            return;
+        }
+
+        Bukkit.getScheduler().runTask(this, () -> syncPlayerTeam(player));
     }
 
     @EventHandler
     public void onInteractEntity(PlayerInteractEntityEvent event) {
-        if (event.getPlayer().hasPermission("invCaptive.admin")) return;
+        Player player = event.getPlayer();
 
-        ItemStack itemStackMainHand = event.getPlayer().getInventory().getItemInMainHand();
-        ItemStack itemStackOffHand = event.getPlayer().getInventory().getItemInOffHand();
-        if (itemStackMainHand.getType() == Material.BARRIER) event.setCancelled(true);
-        if (itemStackMainHand.getType() == Material.AIR && itemStackOffHand.getType() == Material.BARRIER) event.setCancelled(true);
+        if (player.hasPermission("invCaptive.admin")) return;
+
+        ItemStack itemStackMainHand = player.getInventory().getItemInMainHand();
+        ItemStack itemStackOffHand = player.getInventory().getItemInOffHand();
+        if (itemStackMainHand.getType() == Material.BARRIER) {
+            event.setCancelled(true);
+            return;
+        }
+        if (itemStackMainHand.getType() == Material.AIR && itemStackOffHand.getType() == Material.BARRIER) {
+            event.setCancelled(true);
+            return;
+        }
+
+        Bukkit.getScheduler().runTask(this, () -> syncPlayerTeam(player));
     }
 
     @EventHandler
     public void onItemSpawn(ItemSpawnEvent event) {
+        if (!(event.getEntity() instanceof Player player)) return;
+
         ItemStack itemStack = event.getEntity().getItemStack();
-        if (itemStack.getType() == Material.BARRIER) event.setCancelled(true);
+        if (itemStack.getType() == Material.BARRIER) {
+            event.setCancelled(true);
+            return;
+        }
+
+        //Bukkit.getScheduler().runTask(this, () -> syncPlayerTeam(player));
     }
 
     @EventHandler
     public void onSwap(PlayerSwapHandItemsEvent event) {
-        if (event.getPlayer().hasPermission("invCaptive.admin")) return;
+        Player player = event.getPlayer();
+
+        if (player.hasPermission("invCaptive.admin")) return;
 
         ItemStack mainHandItemStack = event.getMainHandItem();
         ItemStack offHandItemStack = event.getOffHandItem();
 
         if (mainHandItemStack == null || offHandItemStack == null) return;
-        if (offHandItemStack.getType() == Material.BARRIER || mainHandItemStack.getType() == Material.BARRIER)
+        if (offHandItemStack.getType() == Material.BARRIER || mainHandItemStack.getType() == Material.BARRIER) {
             event.setCancelled(true);
+            return;
+        }
+
+        Bukkit.getScheduler().runTask(this, () -> syncPlayerTeam(player));
     }
 
     @EventHandler
     public void onPlayerDeath(PlayerDeathEvent event) {
+        Player player = event.getEntity();
+
         event.setKeepInventory(true);
 
-        if (event.getEntity().getPlayer() != null && event.getEntity().getPlayer().hasPermission("invCaptive.admin")) return;
+        if (player.getPlayer() != null && player.hasPermission("invCaptive.admin")) return;
 
         // 방벽을 제외한 나머지를 드랍시킴
         List<ItemStack> drops = event.getDrops();
         drops.clear();
 
-        Inventory inventory = event.getEntity().getInventory();
+        Inventory inventory = player.getInventory();
         for (int i = 0; i < inventory.getSize(); i++) {
             ItemStack itemStack = inventory.getItem(i);
             if (itemStack != null) {
@@ -248,11 +444,35 @@ public final class Inv_Captive extends JavaPlugin implements CommandExecutor, Li
                 }
             }
         }
+
+        Bukkit.getScheduler().runTask(this, () -> syncPlayerTeam(player));
     }
 
     @Override
     public void onDisable() {
+        List<Integer> processedTeams = new ArrayList<Integer>();
+        for (Player player: Bukkit.getOnlinePlayers()) {
+            if (player.hasPermission("invCaptive.admin")) continue;
+
+            int team = teamManager.getPlayerTeam(player.getName(), this::getInventory);
+            if (processedTeams.contains(team)) continue;
+
+            String rootKey = String.format("groups.group%d.", team);
+            List<ItemStack> lastInventoryData = inventoryManager.export(player);
+            getInventory().set(rootKey + "lastItems", lastInventoryData);
+            processedTeams.add(team);
+        }
+
         saveInventory();
+
+        int groupsCount = getInventory().getInt("groups.total");
+        for (int i = 0; i < groupsCount; i++) {
+            World world = Bukkit.getWorld("world_the_end_Group" + (i + 1));
+            if (world != null) {
+                world.save();
+                Bukkit.unloadWorld(world, true);
+            }
+        }
 
         logger.info("Inv-Captive Disabled.");
     }
@@ -263,11 +483,29 @@ public final class Inv_Captive extends JavaPlugin implements CommandExecutor, Li
         return commandsManager.onCommand(sender, command, label, args);
     }
 
+    public void syncPlayerTeam(Player player) {
+        int team = teamManager.getPlayerTeam(player.getName(), this::getInventory);
+        List<String> teamPlayers = teamManager.getTeamPlayers(team, this::getInventory);
+        for (String current: teamPlayers) {
+            // 찾는 대상이 현재 플레이어 이름과 같다면 무시
+            if (current.equals(player.getName().toLowerCase())) continue;
+
+            for (Player onlinePlayer: Bukkit.getOnlinePlayers()) {
+                // 찾는 대상과 온라인 대상이 같다면 적용
+                if (current.equals(onlinePlayer.getName().toLowerCase())) {
+                    inventoryManager.syncInventory(player, onlinePlayer);
+                    break;
+                }
+            }
+        }
+    }
+
     public void saveInventory() {
         try {
             inventoryData.save(inventoryDataFile);
         } catch (IOException e) {
             e.printStackTrace();
+            getServer().shutdown();
         }
     }
 
@@ -281,10 +519,9 @@ public final class Inv_Captive extends JavaPlugin implements CommandExecutor, Li
         inventoryData = new YamlConfiguration();
         try {
             inventoryData.load(inventoryDataFile);
-        } catch (IOException e) {
+        } catch (IOException | InvalidConfigurationException e) {
             e.printStackTrace();
-        } catch (InvalidConfigurationException e) {
-            throw new RuntimeException(e);
+            getServer().shutdown();
         }
     }
 

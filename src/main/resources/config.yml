@@ -1,1 +1,24 @@
-deniedMessage: "&c등록되지 않은 플레이어(팀)입니다.\n디스코드에서 팀 등록 절차를 먼저 진행 해 주세요."
+messages:
+  minecraft:
+    prefix: "&f[&aInv-Captive&f]"
+    playerName: "[%d팀] %s"
+    messages:
+      unregisteredTeam: "&c등록되지 않은 플레이어(팀)입니다.\n디스코드에서 팀 등록 절차를 먼저 진행 해 주세요."
+      inventoryUnlocked: "&a%s&f(%d팀)님이 &6%s&f(을)를 파괴하여 인벤토리의 잠금을 한 칸 해제했습니다!"
+    item:
+      locked: "&4&lLOCKED"
+      opened: "&e새로운 인벤토리"
+    motd: "&f[&aInv-Captive&f] "
+    commands:
+      teamInfo: "{TEAM}팀 정보\n팀원: {TEAMMATE0}, {TEAMMATE1}\n해금한 인벤토리: {CURRENT}/{MAX}개 ({PERCENT})"
+      ranking: "상위 5위 팀 목록\n1위: {TEAM0_NAME}팀 ({TEAM0_MATE0}, {TEAM0_MATE1}) - {TEAM0_CURRENT}/{TEAM0_MAX}개 ({TEAM0_PERCENT})\n2위: {TEAM1_NAME}팀 ({TEAM1_MATE0}, {TEAM1_MATE1}) - {TEAM1_CURRENT}/{TEAM1_MAX}개 ({TEAM1_PERCENT})\n3위: {TEAM2_NAME}팀 ({TEAM2_MATE0}, {TEAM2_MATE1}) - {TEAM2_CURRENT}/{TEAM2_MAX}개 ({TEAM2_PERCENT})\n4위: {TEAM3_NAME}팀 ({TEAM3_MATE0}, {TEAM3_MATE1}) - {TEAM3_CURRENT}/{TEAM3_MAX}개 ({TEAM3_PERCENT})\n5위: {TEAM4_NAME}팀 ({TEAM4_MATE0}, {TEAM4_MATE1}) - {TEAM4_CURRENT}/{TEAM4_MAX}개 ({TEAM4_PERCENT})"
+      invalid: "&c'%s'(은)는 존재하지 않습니다!"
+  discord:
+    teamRegisterFailed: "플레이어 등록에 실패했습니다.\n등록한 플레이어가 이미 다른 팀에 등록되어 있을 수도 있습니다."
+    teamRegistered:
+      single: "성공적으로 아래 플레이어를 팀으로 등록했습니다.\n%d팀: `%s`"
+      duo: "성공적으로 아래 플레이어를 팀으로 등록했습니다.\n%d팀: `%s`, `%s`"
+    commands:
+      teamInfo: "> **{TEAM}팀 정보**\n\n팀원: `{TEAMMATE0}`, `{TEAMMATE1}`\n해금한 인벤토리: {CURRENT}/{MAX}개 (`{PERCENT}`)"
+      ranking: "> **상위 5위 팀 목록**\n\n1위: {TEAM0_NAME}팀 (`{TEAM0_MATE0}`, `{TEAM0_MATE1}`) - {TEAM0_CURRENT}/{TEAM0_MAX}개 (`{TEAM0_PERCENT}`)\n2위: {TEAM1_NAME}팀 (`{TEAM1_MATE0}`, `{TEAM1_MATE1}`) - {TEAM1_CURRENT}/{TEAM1_MAX}개 (`{TEAM1_PERCENT}`)\n3위: {TEAM2_NAME}팀 (`{TEAM2_MATE0}`, `{TEAM2_MATE1}`) - {TEAM2_CURRENT}/{TEAM2_MAX}개 (`{TEAM2_PERCENT}`)\n4위: {TEAM3_NAME}팀 (`{TEAM3_MATE0}`, `{TEAM3_MATE1}`) - {TEAM3_CURRENT}/{TEAM3_MAX}개 (`{TEAM3_PERCENT}`)\n5위: {TEAM4_NAME}팀 (`{TEAM4_MATE0}`, `{TEAM4_MATE1}`) - {TEAM4_CURRENT}/{TEAM4_MAX}개 (`{TEAM4_PERCENT}`)"
+      invalid: "`%s`(은)는 존재하지 않습니다!"

@@ -3,14 +3,27 @@ package space.hwahyang.invcaptive;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.*;
-import java.util.AbstractMap.SimpleEntry;
 import java.util.stream.Collectors;
 
 public class InventoryManager {
 
+    private final Inv_Captive inv_captive;
+
+    private final ItemStack DEFAULT_GOLDENAPPLE;
+    public InventoryManager(Inv_Captive inv_captive) {
+        this.inv_captive = inv_captive;
+
+        DEFAULT_GOLDENAPPLE = new ItemStack(Material.GOLDEN_APPLE, 1);
+        ItemMeta itemMeta = DEFAULT_GOLDENAPPLE.getItemMeta();
+        itemMeta.setDisplayName(inv_captive.getConfig().getString("messages.minecraft.item.opened").replace("&", "§"));
+        DEFAULT_GOLDENAPPLE.setItemMeta(itemMeta);
+    }
+
     private int inventoryMax = 9 * 4 + 5; // 플레이어 인벤토리 36칸 + 장비 4칸 + 보조손 1칸 = 41칸
+
     public int getInventoryMax() {
         return inventoryMax;
     }
@@ -28,6 +41,26 @@ public class InventoryManager {
         return data;
     }
 
+    public void openInventorySlot(List<Player> players, int slot) {
+        for (Player player: players) {
+            openInventorySlot(player, slot);
+        }
+    }
+    public void openInventorySlot(Player player, int slot) {
+        player.getInventory().setItem(slot, DEFAULT_GOLDENAPPLE);
+    }
+
+    /**
+     * 두 플레이어의 인벤토리를 동일하게 맞춥니다.
+     * @param player 복사할 플레이어를 지정합니다.
+     * @param other 붙여넣을 대상 플레이어를 지정합니다.
+     */
+    public void syncInventory(Player player, Player other) {
+        for (int i = 0; i < inventoryMax; i++) {
+            other.getInventory().setItem(i, player.getInventory().getItem(i));
+        }
+    }
+
     /**
      * 플레이어의 인벤토리를 새로 지정합니다.
      * @param player 대상 플레이어를 지정합니다.
@@ -36,7 +69,7 @@ public class InventoryManager {
      */
     public void apply(Player player, List<ItemStack> inventory) {
         for (int i = 0; i < inventoryMax; i++) {
-            player.getInventory().setItem(i, new ItemStack(inventory.get(i)));
+            player.getInventory().setItem(i, inventory.get(i));
         }
     }
 
@@ -71,30 +104,6 @@ public class InventoryManager {
 
         for (String name: original) {
             data.add(Material.getMaterial(name));
-        }
-
-        return data;
-    }
-
-    public SimpleEntry<List<String>, List<Integer>> convertItemStackArrayToStringPair(List<ItemStack> original) {
-        SimpleEntry<List<String>, List<Integer>> data = new SimpleEntry<List<String>, List<Integer>>(new ArrayList<String>(), new ArrayList<Integer>());
-
-        for (ItemStack itemStack: original) {
-            data.getKey().add(itemStack.getType().name());
-            data.getValue().add(itemStack.getAmount());
-        }
-
-        return data;
-    }
-
-    public List<ItemStack> convertStringPairToItemStackArray(List<String> stringList, List<Integer> integerList) {
-        return convertStringPairToItemStackArray(new SimpleEntry<List<String>, List<Integer>>(stringList, integerList));
-    }
-    public List<ItemStack> convertStringPairToItemStackArray(SimpleEntry<List<String>, List<Integer>> original) {
-        List<ItemStack> data = new ArrayList<ItemStack>();
-
-        for (int i = 0; i < original.getKey().size(); i++) {
-            data.add(new ItemStack(Material.getMaterial(original.getKey().get(i)), original.getValue().get(i)));
         }
 
         return data;

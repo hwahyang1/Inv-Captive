@@ -1,11 +1,11 @@
 package space.hwahyang.invcaptive;
 
-import org.bukkit.Material;
+import org.bukkit.Bukkit;
+import org.bukkit.World;
+import org.bukkit.WorldCreator;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-
-import java.util.List;
 
 public class CommandsManager {
 
@@ -16,7 +16,7 @@ public class CommandsManager {
     }
 
     private void sendMessage(CommandSender sender, String message) {
-        sender.sendMessage(("[Inv-Captive] " + message).replace("&", "§"));
+        sender.sendMessage((inv_captive.getConfig().getString("messages.minecraft.prefix") + " " + message).replace("&", "§"));
     }
 
     // https://www.digminecraft.com/lists/color_list_pc.php
@@ -27,22 +27,23 @@ public class CommandsManager {
                     if (args.length == 0) return false;
                     switch (args[0].toLowerCase()) {
                         case "help" -> {
-                            sendMessage(player, String.format("Usage:\n - /%s help\n - /%s stat <PlayerName>\n - /%s rank", label, label, label));
+                            sendMessage(player, "Usage:");
+                            sendMessage(player, String.format("/%s help", label));
+                            sendMessage(player, String.format("/%s stat <PlayerName>", label));
+                            sendMessage(player, String.format("/%s rank", label));
                             return true;
                             //break;
                         }
                         case "stat" -> { // optional Param: Nickname
-                            List<String> asdf = inv_captive.getInventory().getStringList("groups.group3.unlockItems");
-                            var wqer = inv_captive.getInventoryManager().convertStringArrayToMaterialArray(asdf);
-                            for (Material material: wqer) {
-                                sendMessage(player, material.name());
-                            }
-                            sendMessage(player, "stat");
+                            String input = args.length == 1 ? player.getName() : args[1];
+                            String result = inv_captive.getTeamManager().getTeamInfo(input, inv_captive.getConfig().getString("messages.minecraft.commands.teamInfo"), inv_captive::getInventory);
+                            sendMessage(player, result == null ? String.format(inv_captive.getConfig().getString("messages.minecraft.commands.invalid"), input) : result);
                             return true;
                             //break;
                         }
                         case "rank" -> {
-                            sendMessage(player, "rank");
+                            String result = inv_captive.getTeamManager().getTop5Teams(inv_captive.getConfig().getString("messages.minecraft.commands.ranking"), inv_captive::getInventory);
+                            sendMessage(player, result);
                             return true;
                             //break;
                         }
@@ -57,12 +58,27 @@ public class CommandsManager {
                     if (args.length == 0) return false;
                     switch (args[0].toLowerCase()) {
                         case "help" -> {
-                            sendMessage(player, String.format("Usage:\n - /%s help\n - /%s ender <Team/PlayerName>", label, label));
+                            sendMessage(player, "Usage:");
+                            sendMessage(player, String.format("/%s help", label));
+                            sendMessage(player, String.format("/%s ender <PlayerName>", label));
                             return true;
                             //break;
                         }
-                        case "ender" -> { // required Param: Team/Nickname
-                            sendMessage(player, "ender");
+                        case "ender" -> { // required Param: Nickname
+                            if (args.length == 1) return false;
+
+                            int team = inv_captive.getTeamManager().getPlayerTeam(args[1], inv_captive::getInventory);
+                            if (team == -1) return false;
+
+                            World separateWorld = Bukkit.getWorld("world_the_end_Group" + team);
+                            if (separateWorld == null)
+                                separateWorld = new WorldCreator("world_the_end_Group" + team).environment(World.Environment.THE_END).createWorld();
+
+                            if (separateWorld == null) {
+                                return false;
+                            }
+
+                            player.teleport(separateWorld.getSpawnLocation());
                             return true;
                             //break;
                         }

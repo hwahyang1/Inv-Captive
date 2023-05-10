@@ -19,7 +19,14 @@ JDK 19
 [Releases](https://github.com/hwahyang1/Inv-Captive/releases)를 참고하세요.
 
 ## 사용법
-(작성예정)
+### 안내사항
+1. 플러그인 사용을 위해 [`DiscordSRV`](https://github.com/DiscordSRV/DiscordSRV) 플러그인이 필요합니다.
+2. op(관리자 권한)이 있는 플레이어는 플러그인의 동작에서 자유롭습니다.
+
+### 접속 방법
+서버를 실행 한 후, 디스코드에 `/등록 <닉네임1> [닉네임2]`를 입력합니다.
+
+등록이 완료되었다는 메시지를 받으면, 서버에 접속 할 수 있습니다.
 
 ## 라이선스
 GPLv3
