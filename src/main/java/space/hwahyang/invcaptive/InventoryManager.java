@@ -3,6 +3,7 @@ package space.hwahyang.invcaptive;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.*;
@@ -57,9 +58,12 @@ public class InventoryManager {
      */
     public void syncInventory(Player player, Player other) {
         other.getInventory().setContents(player.getInventory().getContents());
-        /*for (int i = 0; i < inventoryMax; i++) {
-            other.getInventory().setItem(i, player.getInventory().getItem(i));
-        }*/
+    }
+    public void syncInventory(PlayerInventory inventory, Player other) {
+        other.getInventory().setContents(inventory.getContents());
+    }
+    public void syncInventory(ItemStack[] itemStacks, Player other) {
+        other.getInventory().setContents(itemStacks);
     }
 
     /**

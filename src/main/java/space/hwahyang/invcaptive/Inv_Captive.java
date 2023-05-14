@@ -26,18 +26,20 @@ import org.bukkit.event.entity.ItemSpawnEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.*;
 import org.bukkit.event.server.ServerListPingEvent;
 import org.bukkit.event.world.WorldSaveEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -194,13 +196,9 @@ public final class Inv_Captive extends JavaPlugin implements CommandExecutor, Li
                 // 찾는 대상이 현재 플레이어 이름과 같다면 무시
                 if (current.equals(player.getName().toLowerCase())) continue;
 
-                for (Player onlinePlayer: Bukkit.getOnlinePlayers()) {
-                    // 찾는 대상과 온라인 대상이 같다면 이동
-                    if (current.equals(onlinePlayer.getName().toLowerCase())) {
-                        player.teleport(onlinePlayer);
-                        break;
-                    }
-                }
+                Player target = Bukkit.getPlayer(current);
+                if (target == null) continue;
+                player.teleport(target.getLocation());
             }
         }
 
@@ -286,7 +284,9 @@ public final class Inv_Captive extends JavaPlugin implements CommandExecutor, Li
             }
         }
 
-        Bukkit.getScheduler().runTask(this, () -> syncPlayerTeam(player));
+        Bukkit.getScheduler().runTaskAsynchronously(this, () -> syncPlayerTeam(player));
+        //Bukkit.getScheduler().runTask(this, () -> syncPlayerTeam(player));
+        //syncPlayerTeam(player.getName(), player.getInventory());
     }
 
     @EventHandler
@@ -296,9 +296,14 @@ public final class Inv_Captive extends JavaPlugin implements CommandExecutor, Li
         if (player.hasPermission("invCaptive.admin")) return;
 
         ItemStack itemStack = event.getItemDrop().getItemStack();
-        if (itemStack.getType() == Material.BARRIER) event.setCancelled(true);
+        if (itemStack.getType() == Material.BARRIER) {
+            event.setCancelled(true);
+            return;
+        }
 
-        Bukkit.getScheduler().runTask(this, () -> syncPlayerTeam(player));
+        //Bukkit.getScheduler().runTaskAsynchronously(this, () -> syncPlayerTeam(player));
+        //Bukkit.getScheduler().runTask(this, () -> syncPlayerTeam(player));
+        syncPlayerTeam(player.getName(), player.getInventory());
     }
 
     @EventHandler
@@ -307,7 +312,9 @@ public final class Inv_Captive extends JavaPlugin implements CommandExecutor, Li
 
         if (player.hasPermission("invCaptive.admin")) return;
 
+        //Bukkit.getScheduler().runTaskAsynchronously(this, () -> syncPlayerTeam(player));
         Bukkit.getScheduler().runTask(this, () -> syncPlayerTeam(player));
+        //syncPlayerTeam(player.getName(), player.getInventory());
     }
 
     @EventHandler
@@ -316,7 +323,9 @@ public final class Inv_Captive extends JavaPlugin implements CommandExecutor, Li
 
         if (event.getPlayer().hasPermission("invCaptive.admin")) return;
 
-        Bukkit.getScheduler().runTask(this, () -> syncPlayerTeam(player));
+        //Bukkit.getScheduler().runTaskAsynchronously(this, () -> syncPlayerTeam(player));
+        //Bukkit.getScheduler().runTask(this, () -> syncPlayerTeam(player));
+        syncPlayerTeam(player.getName(), player.getInventory());
     }
 
     @EventHandler
@@ -354,7 +363,10 @@ public final class Inv_Captive extends JavaPlugin implements CommandExecutor, Li
                 location.getWorld().playSound(location, Sound.ENTITY_FIREWORK_ROCKET_LAUNCH, 1, 1);
 
                 inventoryManager.openInventorySlot(player, i);
-                Bukkit.getScheduler().runTask(this, () -> syncPlayerTeam(player));
+
+                Bukkit.getScheduler().runTaskAsynchronously(this, () -> syncPlayerTeam(player));
+                //Bukkit.getScheduler().runTask(this, () -> syncPlayerTeam(player));
+                //syncPlayerTeam(player.getName(), player.getInventory());
                 break;
             }
         }
@@ -420,7 +432,9 @@ public final class Inv_Captive extends JavaPlugin implements CommandExecutor, Li
             }
         }
 
-        Bukkit.getScheduler().runTask(this, () -> syncPlayerTeam(player));
+        //Bukkit.getScheduler().runTaskAsynchronously(this, () -> syncPlayerTeam(player));
+        //Bukkit.getScheduler().runTask(this, () -> syncPlayerTeam(player));
+        syncPlayerTeam(player.getName(), player.getInventory());
     }
 
     @EventHandler
@@ -444,7 +458,9 @@ public final class Inv_Captive extends JavaPlugin implements CommandExecutor, Li
             }
         }
 
-        Bukkit.getScheduler().runTask(this, () -> syncPlayerTeam(player));
+        Bukkit.getScheduler().runTaskAsynchronously(this, () -> syncPlayerTeam(player));
+        //Bukkit.getScheduler().runTask(this, () -> syncPlayerTeam(player));
+        //syncPlayerTeam(player.getName(), player.getInventory());
     }
 
     @EventHandler
@@ -457,7 +473,9 @@ public final class Inv_Captive extends JavaPlugin implements CommandExecutor, Li
             return;
         }
 
+        //Bukkit.getScheduler().runTaskAsynchronously(this, () -> syncPlayerTeam(player));
         //Bukkit.getScheduler().runTask(this, () -> syncPlayerTeam(player));
+        syncPlayerTeam(player.getName(), player.getInventory());
     }
 
     @EventHandler
@@ -475,7 +493,9 @@ public final class Inv_Captive extends JavaPlugin implements CommandExecutor, Li
             return;
         }
 
-        Bukkit.getScheduler().runTask(this, () -> syncPlayerTeam(player));
+        Bukkit.getScheduler().runTaskAsynchronously(this, () -> syncPlayerTeam(player));
+        //Bukkit.getScheduler().runTask(this, () -> syncPlayerTeam(player));
+        //syncPlayerTeam(player.getName(), player.getInventory());
     }
 
     @EventHandler
@@ -501,7 +521,9 @@ public final class Inv_Captive extends JavaPlugin implements CommandExecutor, Li
             }
         }
 
-        Bukkit.getScheduler().runTask(this, () -> syncPlayerTeam(player));
+        Bukkit.getScheduler().runTaskAsynchronously(this, () -> syncPlayerTeam(player));
+        //Bukkit.getScheduler().runTask(this, () -> syncPlayerTeam(player));
+        //syncPlayerTeam(player.getName(), player.getInventory());
     }
 
     @Override
@@ -542,23 +564,47 @@ public final class Inv_Captive extends JavaPlugin implements CommandExecutor, Li
     public void syncPlayerTeam(Player player) {
         int team = teamManager.getPlayerTeam(player.getName(), this::getInventory);
         List<String> teamPlayers = teamManager.getTeamPlayers(team, this::getInventory);
+
         for (String current: teamPlayers) {
             // 찾는 대상이 현재 플레이어 이름과 같다면 무시
             if (current.equals(player.getName().toLowerCase())) continue;
 
-            for (Player onlinePlayer: Bukkit.getOnlinePlayers()) {
-                // 찾는 대상과 온라인 대상이 같다면 적용
-                if (current.equals(onlinePlayer.getName().toLowerCase())) {
-                    inventoryManager.syncInventory(player, onlinePlayer);
-                    break;
-                }
-            }
+            Player target = Bukkit.getPlayer(current);
+            if (target == null) continue;
+            inventoryManager.syncInventory(player, target);
+        }
+    }
+
+    public void syncPlayerTeam(String playerName, PlayerInventory inventory) {
+        int team = teamManager.getPlayerTeam(playerName, this::getInventory);
+        List<String> teamPlayers = teamManager.getTeamPlayers(team, this::getInventory);
+
+        for (String current: teamPlayers) {
+            // 찾는 대상이 현재 플레이어 이름과 같다면 무시
+            if (current.equals(playerName.toLowerCase())) continue;
+
+            Player target = Bukkit.getPlayer(current);
+            if (target == null) continue;
+            inventoryManager.syncInventory(inventory, target);
         }
     }
 
     public void saveInventory() {
         try {
             inventoryData.save(inventoryDataFile);
+
+            Date date = new Date();
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss");
+            String fileName = String.format("backup/inventory_%s.yml", sdf.format(date));
+
+            File inventoryDataBackupFile = new File(getDataFolder(), fileName);
+            if (!inventoryDataBackupFile.exists()) {
+                inventoryDataBackupFile.getParentFile().mkdirs();
+                inventoryDataBackupFile.createNewFile();
+                FileWriter writer = new FileWriter(inventoryDataBackupFile);
+                writer.write(inventoryData.saveToString());
+                writer.close();
+            }
         } catch (IOException e) {
             e.printStackTrace();
             getServer().shutdown();
