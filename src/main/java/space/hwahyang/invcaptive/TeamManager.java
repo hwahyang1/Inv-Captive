@@ -174,7 +174,7 @@ public class TeamManager {
         String returnText = baseText;
         int total = inv_captive.getInventory().getInt("groups.total");
 
-        Map<Float, Integer> ranks = new TreeMap<Float, Integer>();
+        Map<Float, Integer> ranks = new TreeMap<Float, Integer>(Comparator.reverseOrder());
         for (int i = 0; i < total; i++) {
             int current = 0;
             List<ItemStack> lastItems = (List<ItemStack>) data.getList(String.format("groups.group%d.lastItems", i + 1));
@@ -214,7 +214,7 @@ public class TeamManager {
         }
 
         // 혹시 총 팀이 부족해서 5개를 다 못채운다면 나머지는 '없음'으로 도배해주기
-        if (total < 5) {
+        if (total <= 5) {
             for (int i = 0; i < 5; i++) {
                 returnText = returnText.replace(String.format("{TEAM%d_NAME}", i), "(없음)");
                 returnText = returnText.replace(String.format("{TEAM%d_MATE0}", i), "(없음)");

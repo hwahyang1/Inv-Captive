@@ -13,6 +13,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Firework;
 import org.bukkit.entity.Player;
@@ -25,9 +26,11 @@ import org.bukkit.event.entity.ItemSpawnEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.*;
 import org.bukkit.event.server.ServerListPingEvent;
 import org.bukkit.event.world.WorldSaveEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.FireworkMeta;
@@ -70,13 +73,14 @@ public final class Inv_Captive extends JavaPlugin implements CommandExecutor, Li
 
         this.saveDefaultConfig();
 
-        reloadInventory();
+        this.reloadInventory();
 
         getCommand("invCaptive").setExecutor(this);
         getCommand("invCaptiveAdmin").setExecutor(this);
 
         for (Player player: Bukkit.getOnlinePlayers()) {
             if (player.hasPermission("invCaptive.admin")) continue;
+
             int team = teamManager.getPlayerTeam(player.getName(), this::getInventory);
             if (team == -1) continue;
 
@@ -363,9 +367,57 @@ public final class Inv_Captive extends JavaPlugin implements CommandExecutor, Li
         if (event.getPlayer().hasPermission("invCaptive.admin")) return;
 
         ItemStack itemStack = event.getItem();
-        if (itemStack != null && itemStack.getType() == Material.BARRIER) {
-            event.setCancelled(true);
-            return;
+        if (itemStack != null) {
+            if (itemStack.getType() == Material.BARRIER) {
+                event.setCancelled(true);
+                return;
+            }
+
+            Material itemType = event.getItem().getType();
+            if (itemType == Material.LEATHER_HELMET ||
+                itemType == Material.CHAINMAIL_HELMET ||
+                itemType == Material.IRON_HELMET ||
+                itemType == Material.GOLDEN_HELMET ||
+                itemType == Material.DIAMOND_HELMET ||
+                itemType == Material.NETHERITE_HELMET) {
+                if (player.getInventory().getItem(EquipmentSlot.HEAD).getType() == Material.BARRIER) {
+                    event.setCancelled(true);
+                    return;
+                }
+            }
+            if (itemType == Material.LEATHER_CHESTPLATE ||
+                itemType == Material.CHAINMAIL_CHESTPLATE ||
+                itemType == Material.IRON_CHESTPLATE ||
+                itemType == Material.GOLDEN_CHESTPLATE ||
+                itemType == Material.DIAMOND_CHESTPLATE ||
+                itemType == Material.NETHERITE_CHESTPLATE) {
+                if (player.getInventory().getItem(EquipmentSlot.CHEST).getType() == Material.BARRIER) {
+                    event.setCancelled(true);
+                    return;
+                }
+            }
+            if (itemType == Material.LEATHER_LEGGINGS ||
+                itemType == Material.CHAINMAIL_LEGGINGS ||
+                itemType == Material.IRON_LEGGINGS ||
+                itemType == Material.GOLDEN_LEGGINGS ||
+                itemType == Material.DIAMOND_LEGGINGS ||
+                itemType == Material.NETHERITE_LEGGINGS) {
+                if (player.getInventory().getItem(EquipmentSlot.LEGS).getType() == Material.BARRIER) {
+                    event.setCancelled(true);
+                    return;
+                }
+            }
+            if (itemType == Material.LEATHER_BOOTS ||
+                itemType == Material.CHAINMAIL_BOOTS ||
+                itemType == Material.IRON_BOOTS ||
+                itemType == Material.GOLDEN_BOOTS ||
+                itemType == Material.DIAMOND_BOOTS ||
+                itemType == Material.NETHERITE_BOOTS) {
+                if (player.getInventory().getItem(EquipmentSlot.FEET).getType() == Material.BARRIER) {
+                    event.setCancelled(true);
+                    return;
+                }
+            }
         }
 
         Bukkit.getScheduler().runTask(this, () -> syncPlayerTeam(player));
@@ -377,15 +429,19 @@ public final class Inv_Captive extends JavaPlugin implements CommandExecutor, Li
 
         if (player.hasPermission("invCaptive.admin")) return;
 
-        ItemStack itemStackMainHand = player.getInventory().getItemInMainHand();
-        ItemStack itemStackOffHand = player.getInventory().getItemInOffHand();
-        if (itemStackMainHand.getType() == Material.BARRIER) {
-            event.setCancelled(true);
-            return;
-        }
-        if (itemStackMainHand.getType() == Material.AIR && itemStackOffHand.getType() == Material.BARRIER) {
-            event.setCancelled(true);
-            return;
+        Entity target = event.getRightClicked();
+
+        if (target.getType() == EntityType.ITEM_FRAME || target.getType() == EntityType.GLOW_ITEM_FRAME) {
+            ItemStack itemStackMainHand = player.getInventory().getItemInMainHand();
+            ItemStack itemStackOffHand = player.getInventory().getItemInOffHand();
+            if (itemStackMainHand.getType() == Material.BARRIER) {
+                event.setCancelled(true);
+                return;
+            }
+            if (itemStackMainHand.getType() == Material.AIR && itemStackOffHand.getType() == Material.BARRIER) {
+                event.setCancelled(true);
+                return;
+            }
         }
 
         Bukkit.getScheduler().runTask(this, () -> syncPlayerTeam(player));

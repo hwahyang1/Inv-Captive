@@ -56,9 +56,10 @@ public class InventoryManager {
      * @param other 붙여넣을 대상 플레이어를 지정합니다.
      */
     public void syncInventory(Player player, Player other) {
-        for (int i = 0; i < inventoryMax; i++) {
+        other.getInventory().setContents(player.getInventory().getContents());
+        /*for (int i = 0; i < inventoryMax; i++) {
             other.getInventory().setItem(i, player.getInventory().getItem(i));
-        }
+        }*/
     }
 
     /**
