@@ -1,5 +1,5 @@
 # Inv-Captive (불편한 동거)
-MCJE 1.19.4
+MCJE 1.20
 
 JDK 19
 
@@ -17,6 +17,12 @@ JDK 19
 
 ## 실행 파일
 [Releases](https://github.com/hwahyang1/Inv-Captive/releases)를 참고하세요.
+
+## WARINING
+
+**본 플러그인에 대해 인벤토리 공유와 관련한 버그가 존재합니다.**
+
+**해당 부분은 현재 수정 중인 사항으로, 사용 시 유의하시기 바랍니다.**
 
 ## 사용법
 ### 안내사항
